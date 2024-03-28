@@ -2,16 +2,14 @@
 
 package org.nlogo.window
 
-import java.awt.{ Color, Cursor, Dimension, Font, Graphics, Graphics2D, RenderingHints }
-import java.awt.event.{ MouseEvent, MouseListener, MouseMotionListener }
+import java.awt.{  Cursor, Dimension, Font }
 
 import org.nlogo.api.{ Editable, MersenneTwisterFast, Options }
-import org.nlogo.awt.{ Mouse }, Mouse.hasButton1
 import org.nlogo.core.{ AgentKind, Button => CoreButton, I18N }
 import org.nlogo.nvm.Procedure
 
 class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
-        with Editable with MouseListener with MouseMotionListener
+        with Editable 
         with Events.JobRemovedEvent.Handler with Events.TickStateChangeEvent.Handler {
 
   import ButtonWidget._
@@ -21,10 +19,7 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
   private var buttonType: ButtonType = ButtonType.ObserverButton
 
   locally {
-    addMouseListener(this)
-    addMouseMotionListener(this)
-    setBackground(InterfaceColors.BUTTON_BACKGROUND)
-    setBorder(widgetBorder)
+    //setBackground(InterfaceColors.BUTTON_BACKGROUND)
     org.nlogo.awt.Fonts.adjustDefaultFont(this)
   }
 
@@ -38,7 +33,6 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
     if (newAgentOptions.chosenValue != this.agentOptions.chosenValue){
       this.buttonType = ButtonType(newAgentOptions.chosenValue)
       recompile()
-      repaint()
     }
   }
 
@@ -51,14 +45,6 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
   def buttonUp_=(newButtonUp:Boolean){
     if(newButtonUp) foreverOn = false
     _buttonUp = newButtonUp
-    if(buttonUp) setBorder(widgetBorder)
-    else{
-      setBorder(widgetPressedBorder)
-      // this is an attempt to get the button to invert for at least
-      // a fraction of a second when a keyboard shortcut is used on
-      // a once button - ST 8/6/04
-      paintImmediately(0, 0, getWidth, getHeight)
-    }
   }
 
   protected var _forever = false
@@ -68,7 +54,6 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
       _forever = newForever
       stopping = false
       recompile()
-      repaint()
     }
   }
 
@@ -81,14 +66,14 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
       case _ => Some(newActionKey)
     }
   }
-  private def actionKeyString = _actionKey.map(_.toString).getOrElse("")
+//  private def actionKeyString = _actionKey.map(_.toString).getOrElse("")
 
   private var _keyEnabled = false
   def keyEnabled = _keyEnabled
   def keyEnabled(newKeyEnabled:Boolean){
     if(_keyEnabled != newKeyEnabled){
       _keyEnabled = newKeyEnabled
-      repaint()
+ //     repaint()
     }
   }
 
@@ -96,22 +81,6 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
     if (error == null){
       buttonUp = false
       respondToClick(true)
-    }
-  }
-
-  /// mouse handlers
-
-  // This is used so that when the user right or control clicks
-  // on a button with a syntax error, we know not to bring up
-  // the edit dialog for the button, as we would if they did
-  // a normal click. - ST 1/3/06
-  private var lastMousePressedWasPopupTrigger = false
-
-  def mouseReleased(e:MouseEvent){
-    if (error == null && ! e.isPopupTrigger() && isEnabled() &&
-            ! lastMousePressedWasPopupTrigger && ! disabledWaitingForSetup){
-      e.translatePoint(getX(), getY())
-      respondToClick(getBounds().contains(e.getPoint()))
     }
   }
 
@@ -135,30 +104,6 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
         if (inBounds) action()
       }
     }
-  }
-
-  def mousePressed(e: MouseEvent) {
-    new Events.InputBoxLoseFocusEvent().raise(this)
-    lastMousePressedWasPopupTrigger = e.isPopupTrigger()
-    if (error == null && !e.isPopupTrigger && hasButton1(e) && isEnabled && !disabledWaitingForSetup) buttonUp = false
-  }
-
-  def mouseDragged(e: MouseEvent) {
-    if (error == null){
-      if (hasButton1(e) && isEnabled) {
-        e.translatePoint(getX(), getY())
-        if (getBounds().contains(e.getPoint()) && !e.isPopupTrigger && ! disabledWaitingForSetup) buttonUp = false
-        else if (!forever || !foreverOn) buttonUp = true
-      }
-    }
-  }
-
-  def mouseEntered(e:MouseEvent) {}
-  def mouseExited(e:MouseEvent) {}
-  def mouseMoved(e: MouseEvent) {}
-  def mouseClicked(e: MouseEvent) {
-    if (!e.isPopupTrigger() && error != null && !lastMousePressedWasPopupTrigger && hasButton1(e))
-      new Events.EditWidgetEvent(this).raise(this)
   }
 
   /// editability
@@ -309,59 +254,6 @@ class NewButtonWidget(random:MersenneTwisterFast) extends JobWidget(random)
     size.height = StrictMath.max(size.height,
       getFontMetrics(font).getMaxDescent() + getFontMetrics(font).getMaxAscent() + 12)
     size
-  }
-
-  /// painting
-  override def paintComponent(g: Graphics) {
-    val g2d = g.asInstanceOf[Graphics2D]
-    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-    def drawAsUp = buttonUp && !running
-    def getPaintColor = if (drawAsUp) getBackground else getForeground
-    def paintButtonRectangle(g: Graphics) {
-      g.setColor(getPaintColor)
-      g.fillRect(0, 0, getWidth(), getHeight())
-      def renderImages(g: Graphics, dark: Boolean) {
-        def maybePaintForeverImage() {
-          if (forever) {
-            val image = if (dark) FOREVER_GRAPHIC_DARK else FOREVER_GRAPHIC
-            image.paintIcon(this, g, getWidth() - image.getIconWidth - 4, getHeight() - image.getIconHeight - 4)
-          }
-        }
-        def maybePaintAgentImage() {
-          buttonType.img(dark).map(_.paintIcon(this, g, 3, 3))
-        }
-        maybePaintForeverImage()
-        maybePaintAgentImage()
-      }
-      renderImages(g, !drawAsUp)
-    }
-    def paintKeyboardShortcut(g: Graphics) {
-      if (actionKeyString != "") {
-        val ax = getSize().width - 4 - g.getFontMetrics.stringWidth(actionKeyString)
-        val ay = g.getFontMetrics.getMaxAscent + 2
-        if (drawAsUp) g.setColor(if (keyEnabled) Color.BLACK else Color.GRAY)
-        else g.setColor(if (keyEnabled && forever) getBackground else Color.BLACK)
-        g.drawString(actionKeyString, ax - 1, ay)
-      }
-    }
-    def paintButtonText(g: Graphics) {
-      val stringWidth = g.getFontMetrics.stringWidth(displayName)
-      val color = {
-        val c = if (drawAsUp) getForeground else getBackground
-        if(error != null) c else if (disabledWaitingForSetup) Color.GRAY else c
-      }
-      g.setColor(color)
-      val availableWidth = getSize().width - 8
-      val shortString = org.nlogo.awt.Fonts.shortenStringToFit(displayName, availableWidth, g.getFontMetrics)
-      val nx = if (stringWidth > availableWidth) 4 else (getSize().width / 2) - (stringWidth / 2)
-      val labelHeight = g.getFontMetrics.getMaxDescent + g.getFontMetrics.getMaxAscent
-      val ny = (getSize().height / 2) + (labelHeight / 2)
-      g.drawString(shortString, nx, ny)  //if (disabledWaitingForSetup) Color.GRAY
-      setToolTipText(if (displayName != shortString) displayName else null)
-    }
-    paintButtonRectangle(g)
-    paintButtonText(g)
-    paintKeyboardShortcut(g)
   }
 
   // saving and loading
