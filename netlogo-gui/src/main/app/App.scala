@@ -52,8 +52,8 @@ object App {
   private var logEvents: String = null
   private var logDirectory: String = null
   private var popOutCodeTab = false
-  private var lookAndFeelInfo = ""
-  private var lightTheme = true
+  var lookAndFeelInfo = ""
+  var lightTheme = true
   /**
    * Should be called once at startup to create the application and
    * start it running.  May not be called more than once.  Once

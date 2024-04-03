@@ -27,13 +27,22 @@ final object Utils {
 
   /// borders
 
-  private val WidgetBorder = BorderFactory.createCompoundBorder(
-    BorderFactory.createMatteBorder(1, 1, 0, 0, Color.GRAY),
-    BorderFactory.createRaisedBevelBorder)
+  private val WidgetBorder = if (org.nlogo.app.App.lookAndFeelInfo.isEmpty) {
+      BorderFactory.createCompoundBorder(
+      BorderFactory.createMatteBorder(1, 1, 0, 0, Color.GRAY),
+      BorderFactory.createRaisedBevelBorder)
+    } else {
+      BorderFactory.createEmptyBorder(1, 1, 0, 0)
+    }
 
-  private val WidgetPressedBorder = BorderFactory.createCompoundBorder(
-    BorderFactory.createMatteBorder(1, 1, 0, 0, java.awt.Color.GRAY),
-    BorderFactory.createLoweredBevelBorder)
+println(s"laf:${org.nlogo.app.App.lookAndFeelInfo}")
+  private val WidgetPressedBorder = if (org.nlogo.app.App.lookAndFeelInfo.isEmpty) {
+      BorderFactory.createCompoundBorder(
+      BorderFactory.createMatteBorder(1, 1, 0, 0, Color.GRAY),
+      BorderFactory.createLoweredBevelBorder)
+    } else {
+      BorderFactory.createEmptyBorder(1, 1, 0, 0)
+    }
 
   def createWidgetBorder() = WidgetBorder
   def createWidgetPressedBorder() = WidgetPressedBorder
